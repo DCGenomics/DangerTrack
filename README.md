@@ -1,7 +1,15 @@
-# DangerTrack
+# DangerTrack 🚨
 
-A scoring system for difficult to assess regions.
 
-This method uses various information such as SVs calls and mapability to generate a score for every 5kbp region.
+Description:
 
-originally at https://github.com/NCBI-Hackathons/Structural_Variants_CSHL
+A scoring system for difficult to assess regions that uses SVs calls and mappability to generate a genome-wide score.
+
+
+Contents:
+
+* `prepare.sh` - step 1 - prepare, clean, and bin the data
+* `summarize.R` - step 2 - combine and summarize binned data
+
+
+spun out of https://github.com/NCBI-Hackathons/Structural_Variants_CSHL
