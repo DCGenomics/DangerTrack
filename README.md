@@ -8,6 +8,7 @@ Contents:
 
 * `prepare.sh` - step 1 - prepare, clean, and bin the data
 * `summarize.R` - step 2 - combine and summarize binned data
+* `dangertrack.bed.gz` and `dangertrack.bedgraph.gz` - generated DangerTrack scores
 
 ---
 

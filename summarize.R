@@ -33,29 +33,30 @@ head(combined_summary)
 
 # plot distributions of values
 
+y_limits = c(0, 600000)
+y_breaks = seq(0, 600000, 100000)
+
 plot_50mer = ggplot(combined_summary, aes(Mapability50mer)) +
 geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
 scale_x_continuous() +
-scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
 
 plot_100mer = ggplot(combined_summary, aes(Mapability100mer)) +
 geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
 scale_x_continuous() +
-scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
 
 events_x_limits = c(-1, 80)
-events_y_limits = c(0, 600000)
-events_y_breaks = seq(0, 600000, 100000)
 
 plot_giab = ggplot(combined_summary, aes(events_GIAB)) +
 geom_histogram(binwidth = 1, fill = "dodgerblue4") +
 scale_x_continuous(limits = events_x_limits) +
-scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
 
 plot_1kg = ggplot(combined_summary, aes(events_1KG)) +
 geom_histogram(binwidth = 1, fill = "dodgerblue4") +
 scale_x_continuous(limits = events_x_limits) +
-scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
 
 # plot the four distribution plots in one image
 plot_grid(plot_50mer, plot_100mer, plot_giab, plot_1kg) +
@@ -179,8 +180,6 @@ ggsave("score_ENCODE_DAC_blacklisted.png", width = 8, height = 5, units = "in")
 
 
 # chromosome plots
-
-data(hg_gap)
 
 chromplot_score = data.frame(Chrom = scores[, "chr"], Start = scores[, "start_pos"], End = scores[, "end_pos"],
                              score = scores[, "danger_score"])
