@@ -1,17 +1,17 @@
 #!/usr/bin/env Rscript
 
 
-# R commands for summarizing and plotting the data
+# R commands to summarize and plot the data
 
 
 ####################
 
 
 # load relevant libraries
-library(GGally, quietly = TRUE)
 library(ggplot2, quietly = TRUE)
 library(cowplot, quietly = TRUE)
-library(reshape2, quietly = TRUE)
+library(GGally, quietly = TRUE)
+library(chromPlot, quietly = TRUE)
 
 
 ####################
@@ -24,8 +24,8 @@ summary_files
 # import and merge all summary files (619,150 rows for 5kb bins)
 imported_files = lapply(summary_files, read.delim, check.names = FALSE, stringsAsFactors = FALSE)
 combined_summary = Reduce(function(x, y) merge(x, y, all = FALSE, by = "#BIN"), imported_files, accumulate = FALSE)
-head(combined_summary)
 dim(combined_summary)
+head(combined_summary)
 
 
 ####################
@@ -33,36 +33,33 @@ dim(combined_summary)
 
 # plot distributions of values
 
-png("dist.Mapability50mer.png", res = 200, width = 8, height = 5, units = "in")
-ggplot(combined_summary, aes(Mapability50mer)) + geom_freqpoly(binwidth=0.01, size=2)
-dev.off()
+plot_50mer = ggplot(combined_summary, aes(Mapability50mer)) +
+geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
+scale_x_continuous() +
+scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
 
-png("dist.gc.png", res = 200, width = 8, height = 5, units = "in")
-ggplot(combined_summary, aes(GC_fraction)) + geom_freqpoly(binwidth=0.01, size=2)
-dev.off()
+plot_100mer = ggplot(combined_summary, aes(Mapability100mer)) +
+geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
+scale_x_continuous() +
+scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
 
-png("dist.n.png", res = 200, width = 8, height = 5, units = "in")
-ggplot(combined_summary, aes(N_fraction)) + geom_freqpoly(binwidth=0.01, size=2)
-dev.off()
+events_x_limits = c(-1, 80)
+events_y_limits = c(0, 600000)
+events_y_breaks = seq(0, 600000, 100000)
 
-png("dist.GIAB_H002_events.png", res = 200, width = 8, height = 5, units = "in")
-ggplot(combined_summary, aes(GIAB_H002_events)) + geom_freqpoly(binwidth = 1, size = 2) +
-scale_y_log10(labels = scales::comma)
-dev.off()
+plot_giab = ggplot(combined_summary, aes(events_GIAB)) +
+geom_histogram(binwidth = 1, fill = "dodgerblue4") +
+scale_x_continuous(limits = events_x_limits) +
+scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
 
-# boxplot of mapability versus number break points
-png("map-breaks.box.png", res = 200, width = 8, height = 5, units = "in")
-ggplot(subset(combined_summary, GIAB_H002_events < 21),
-       aes(x = GIAB_H002_events, y = Mapability50mer, group = GIAB_H002_events)) +
-geom_boxplot()
-dev.off()
+plot_1kg = ggplot(combined_summary, aes(events_1KG)) +
+geom_histogram(binwidth = 1, fill = "dodgerblue4") +
+scale_x_continuous(limits = events_x_limits) +
+scale_y_sqrt(labels = scales::comma, limits = events_y_limits, breaks = events_y_breaks)
 
-# violin plot of mapability versus number break points
-png("map-breaks.violin.png", res = 200, width = 8, height = 5, units = "in")
-ggplot(subset(combined_summary, GIAB_H002_events < 21),
-       aes(x = GIAB_H002_events, y = Mapability50mer, group = GIAB_H002_events)) +
-geom_violin(fill = "black")
-dev.off()
+# plot the four distribution plots in one image
+plot_grid(plot_50mer, plot_100mer, plot_giab, plot_1kg) +
+ggsave("distributions.all.png", width = 12, height = 8, units = "in")
 
 
 ####################
@@ -70,11 +67,12 @@ dev.off()
 
 # a matrix of correlation plots with regression lines
 
-# calculate correlation for a random subset of entries to save time (remove bin name column)
-correlation_subset = combined_summary[sample(nrow(combined_summary), 10000), 2:ncol(combined_summary)]
-correlation_subset = as.matrix(correlation_subset)
-head(correlation_subset)
+# calculate correlation for a random subset of entries to save time (skip bin name column)
+correlation_columns = c("events_1KG", "events_GIAB", "Mapability100mer", "Mapability50mer")
+correlation_subset = combined_summary[sample(nrow(combined_summary), 10000), ]
+correlation_subset = as.matrix(correlation_subset[, correlation_columns])
 dim(correlation_subset)
+head(correlation_subset)
 
 # regression lines
 smoothed_mean = function(data, mapping, ...) {
@@ -85,19 +83,9 @@ smoothed_mean = function(data, mapping, ...) {
   p
 }
 
-# plot correlations (full subset)
-png("correlations.full.png", res = 100, width = 15, height = 10, units = "in")
+# plot correlations
+png("correlations.png", res = 100, width = 15, height = 10, units = "in")
 ggpairs(correlation_subset, lower = list(continuous = smoothed_mean))
-dev.off()
-
-# filter for alignable bins to remove non-informative stats
-correlation_subset_filtered = correlation_subset[correlation_subset[,"N_fraction"] < 0.5,]
-head(correlation_subset_filtered)
-dim(correlation_subset_filtered)
-
-# plot correlations (filtered subset)
-png("correlations.filtered.png", res = 100, width = 15, height = 10, units = "in")
-ggpairs(correlation_subset_filtered, lower = list(continuous = smoothed_mean))
 dev.off()
 
 
@@ -111,43 +99,102 @@ scores[,"chr"] = sub("(.*):.*-.*", "\\1",  scores[,"#BIN"])
 scores[,"start_pos"] = as.integer(sub(".*:(.*)-.*", "\\1",  scores[,"#BIN"]))
 scores[,"end_pos"] = as.integer(sub(".*:.*-(.*)", "\\1",  scores[,"#BIN"]))
 
-# calculate percentiles after filtering out bins with 0 events
-percentiles = quantile(subset(combined_summary, GIAB_H002_events > 0)[,"GIAB_H002_events"], c(0.95, 0.99, 0.999, 0.9999))
-percentiles
-breaks_score_cap = percentiles["99%"]
+# calculate event percentiles after filtering out bins with 0 events
+percentiles_giab = quantile(subset(combined_summary, events_GIAB > 0)[,"events_GIAB"], c(0.95, 0.99, 0.999, 0.9999))
+score_cap_giab = percentiles_giab["99%"]
+percentiles_1kg = quantile(subset(combined_summary, events_1KG > 0)[,"events_1KG"], c(0.95, 0.99, 0.999, 0.9999))
+score_cap_1kg = percentiles_1kg["99%"]
 
 # capped break point events
-scores[,"GIAB_H002_events_capped"] = scores[,"GIAB_H002_events"]
-scores[scores[,"GIAB_H002_events"] > breaks_score_cap,][,"GIAB_H002_events_capped"] = breaks_score_cap
-
-# mapability score
-scores[,"map_score"] = 1 - scores[,"Mapability50mer"]
+scores[, "events_GIAB_capped"] = scores[, "events_GIAB"]
+scores[scores[, "events_GIAB"] > score_cap_giab,][, "events_GIAB_capped"] = score_cap_giab
+scores[, "events_1KG_capped"] = scores[, "events_1KG"]
+scores[scores[, "events_1KG"] > score_cap_1kg,][, "events_1KG_capped"] = score_cap_1kg
 
 # break points score
-scores[,"breaks_score"] = scores[,"GIAB_H002_events_capped"] / max(scores[,"GIAB_H002_events_capped"])
+breaks_scores_giab = scores[, "events_GIAB_capped"]
+breaks_scores_giab = breaks_scores_giab / max(breaks_scores_giab)
+breaks_scores_1kg = scores[, "events_1KG_capped"]
+breaks_scores_1kg = breaks_scores_1kg / max(breaks_scores_1kg)
+scores[, "breaks_score"] = (breaks_scores_giab + breaks_scores_1kg) / 2
 
-# DangerScore
-scores[,"dangerscore"] = scores[,"map_score"] + scores[,"breaks_score"]
-scores[,"dangerscore"] = scores[,"dangerscore"] / 2
+# mapability score
+scores[, "map_score"] = scores[, "Mapability50mer"] + scores[, "Mapability100mer"]
+scores[, "map_score"] = scores[, "map_score"] / 2
+scores[, "map_score"] = 1 - scores[, "map_score"]
 
-# dangerscore plots for a few chromosomes
-for (chr_name in c("chr1", "chr2", "chr3", "chr4", "chr5")) {
-  dangerscore_png = paste0("dangerscore.", chr_name, ".png")
-  message("generating plot: ", dangerscore_png)
-  ggplot(subset(scores, chr == chr_name), aes(y = dangerscore, x = start_pos)) +
-  geom_point(shape = 20, size = 3, alpha = 0.1) +
-  scale_x_continuous(labels = scales::comma) +
-  ggsave(filename = dangerscore_png, dpi = 100, width = 15, height = 5, units = "in")
-}
+# DangerTrack score
+scores[, "danger_score"] = scores[, "map_score"] + scores[, "breaks_score"]
+scores[, "danger_score"] = scores[, "danger_score"] / 2
 
 # export BED file
-scores_bed = scores[, c("chr", "start_pos", "end_pos", "#BIN", "dangerscore")]
-scores_bed[,"dangerscore"] = round(scores_bed[,"dangerscore"] * 1000, digits = 0)
-write.table(scores_bed, file = "scores.bed", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+scores_bed = scores[, c("chr", "start_pos", "end_pos", "#BIN", "danger_score")]
+scores_bed[,"danger_score"] = round(scores_bed[,"danger_score"] * 1000, digits = 0)
+write.table(scores_bed, file = "dangertrack.bed", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 # export bedGraph file
-scores_bedgraph = scores_bed[, c("chr", "start_pos", "end_pos", "dangerscore")]
-write.table(scores_bedgraph, file = "scores.bedgraph", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+scores_bedgraph = scores_bed[, c("chr", "start_pos", "end_pos", "danger_score")]
+write.table(scores_bedgraph, file = "dangertrack.bedgraph", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+
+####################
+
+
+# divide issues into bins
+
+scores[,"GRC_issues_binned"] = "5-95%"
+scores[scores[,"GRC_issues"] > .95,][, "GRC_issues_binned"] = "95-100%"
+scores[scores[,"GRC_issues"] < .05,][, "GRC_issues_binned"] = "0-5%"
+
+scores[,"ENCODE_DAC_blacklisted_binned"] = "5-95%"
+scores[scores[,"ENCODE_DAC_blacklisted"] > .95,][, "ENCODE_DAC_blacklisted_binned"] = "95-100%"
+scores[scores[,"ENCODE_DAC_blacklisted"] < .05,][, "ENCODE_DAC_blacklisted_binned"] = "0-5%"
+
+# t-test for DangerTrack score of high and low issue bins
+scores_grc_pval = t.test(scores[scores[,"GRC_issues"] < .05,][, "danger_score"],
+                         scores[scores[,"GRC_issues"] > .95,][, "danger_score"])
+scores_dac_pval = t.test(scores[scores[,"ENCODE_DAC_blacklisted"] < .05,][, "danger_score"],
+                         scores[scores[,"ENCODE_DAC_blacklisted"] > .95,][, "danger_score"])
+
+# comparison braket
+bracket1 = data.frame(a = c(1, 1:3,3), b = c(1.02, 1.05, 1.05, 1.05, 1.02))
+
+# plot 2/2
+ggplot(scores, aes(GRC_issues_binned, danger_score)) +
+geom_boxplot(fill = "steelblue3", outlier.color = "gray") +
+geom_line(data = bracket1, aes(x = a, y = b)) +
+annotate("text", x = 2, y = 1.1, label = "p < 2.2e-16") +
+scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+ggsave("score_GRC_issues.png", width = 8, height = 5, units = "in")
+
+ggplot(scores, aes(ENCODE_DAC_blacklisted_binned, danger_score)) +
+geom_boxplot(fill = "steelblue3", outlier.color = "gray") +
+geom_line(data = bracket1, aes(x = a, y = b)) +
+annotate("text", x = 2, y = 1.1, label = "p < 2.2e-16") +
+scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+ggsave("score_ENCODE_DAC_blacklisted.png", width = 8, height = 5, units = "in")
+
+
+####################
+
+
+# chromosome plots
+
+data(hg_gap)
+
+chromplot_score = data.frame(Chrom = scores[, "chr"], Start = scores[, "start_pos"], End = scores[, "end_pos"],
+                             score = scores[, "danger_score"])
+
+chromplot_issues = read.table(file = "issues.bed", col.names = c("Chrom", "Start", "End"),
+                              check.names = FALSE, stringsAsFactors = FALSE)
+chromplot_issues$Group = "Issues"
+chromplot_issues$Colors = "dodgerblue4"
+
+
+chromPlot(chr = c(1:9), figCols = 9, yAxis = FALSE, segLwd = 5, noHist = TRUE, maxSegs = 99000, gaps = hg_gap,
+          stat = chromplot_score,
+          statCol = "score", colStat="firebrick", statName = "score", statTyp = "l", statSumm = "mean",
+          segment = chromplot_issues)
 
 
 ####################
