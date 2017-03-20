@@ -6,9 +6,15 @@ A system for evaluating difficult to assess regions that uses SV calls and mappa
 
 Contents:
 
-* `prepare.sh` - step 1 - prepare, clean, and bin the data
-* `summarize.R` - step 2 - combine and summarize binned data
-* `dangertrack.bed.gz` and `dangertrack.bedgraph.gz` - generated DangerTrack scores
+* Generated DangerTrack scores:
+  * `dangertrack.bed.gz`
+  * `dangertrack.bedgraph.gz`
+* Scripts:
+  * `prepare.sh` - step 1 - prepare, clean, and bin the data
+  * `summarize.R` - step 2 - combine and summarize binned data
+* Inputs:
+  * `.bed.gz`
+  * `.bed.gz`
 
 ---
 

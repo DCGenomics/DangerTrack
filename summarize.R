@@ -39,24 +39,28 @@ y_breaks = seq(0, 600000, 100000)
 plot_50mer = ggplot(combined_summary, aes(Mapability50mer)) +
 geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
 scale_x_continuous() +
-scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
+labs(x = "50 bp Mappability", y = "Frequency")
 
 plot_100mer = ggplot(combined_summary, aes(Mapability100mer)) +
 geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
 scale_x_continuous() +
-scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
+labs(x = "100 bp Mappability", y = "Frequency")
 
 events_x_limits = c(-1, 80)
 
 plot_giab = ggplot(combined_summary, aes(events_GIAB)) +
 geom_histogram(binwidth = 1, fill = "dodgerblue4") +
 scale_x_continuous(limits = events_x_limits) +
-scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
+labs(x = "Genome in a Bottle Breakpoints", y = "Frequency")
 
 plot_1kg = ggplot(combined_summary, aes(events_1KG)) +
 geom_histogram(binwidth = 1, fill = "dodgerblue4") +
 scale_x_continuous(limits = events_x_limits) +
-scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks)
+scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
+labs(x = "1000 Genomes Project Breakpoints", y = "Frequency")
 
 # plot the four distribution plots in one image
 plot_grid(plot_50mer, plot_100mer, plot_giab, plot_1kg) +
@@ -141,8 +145,9 @@ write.table(scores_bedgraph, file = "dangertrack.bedgraph", sep = "\t", quote = 
 ####################
 
 
-# divide issues into bins
+# DangerTrack score and curated regions boxplots
 
+# divide issues into bins
 scores[,"GRC_issues_binned"] = "5-95%"
 scores[scores[,"GRC_issues"] > .95,][, "GRC_issues_binned"] = "95-100%"
 scores[scores[,"GRC_issues"] < .05,][, "GRC_issues_binned"] = "0-5%"
@@ -157,22 +162,24 @@ scores_grc_pval = t.test(scores[scores[,"GRC_issues"] < .05,][, "danger_score"],
 scores_dac_pval = t.test(scores[scores[,"ENCODE_DAC_blacklisted"] < .05,][, "danger_score"],
                          scores[scores[,"ENCODE_DAC_blacklisted"] > .95,][, "danger_score"])
 
-# comparison braket
-bracket1 = data.frame(a = c(1, 1:3,3), b = c(1.02, 1.05, 1.05, 1.05, 1.02))
+# p-value comparison braket
+plot_p_bracket = data.frame(a = c(1, 1:3,3), b = c(1.02, 1.05, 1.05, 1.05, 1.02))
 
-# plot 2/2
+# boxplots
 ggplot(scores, aes(GRC_issues_binned, danger_score)) +
 geom_boxplot(fill = "steelblue3", outlier.color = "gray") +
-geom_line(data = bracket1, aes(x = a, y = b)) +
+geom_line(data = plot_p_bracket, aes(x = a, y = b)) +
 annotate("text", x = 2, y = 1.1, label = "p < 2.2e-16") +
 scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+labs(x = "GRC Issues Regions Overlap", y = "DangerTrack Score") +
 ggsave("score_GRC_issues.png", width = 8, height = 5, units = "in")
 
 ggplot(scores, aes(ENCODE_DAC_blacklisted_binned, danger_score)) +
 geom_boxplot(fill = "steelblue3", outlier.color = "gray") +
-geom_line(data = bracket1, aes(x = a, y = b)) +
+geom_line(data = plot_p_bracket, aes(x = a, y = b)) +
 annotate("text", x = 2, y = 1.1, label = "p < 2.2e-16") +
 scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+labs(x = "ENCODE Blacklisted Regions Overlap", y = "DangerTrack Score") +
 ggsave("score_ENCODE_DAC_blacklisted.png", width = 8, height = 5, units = "in")
 
 
