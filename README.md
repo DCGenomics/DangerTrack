@@ -13,8 +13,8 @@ Contents:
   * `prepare.sh` - step 1 - prepare, clean, and bin the data
   * `summarize.R` - step 2 - combine and summarize binned data
 * Inputs:
-  * `.bed.gz`
-  * `.bed.gz`
+  * `sv.1kg.bed.gz` - 1000 Genomes Project breakpoints
+  * `sv.giab.bed.gz` - Genome in a Bottle breakpoints
 
 ---
 

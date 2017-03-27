@@ -23,12 +23,6 @@ wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes
 wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
 wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign100mer.bigWig
 
-# add chr to GIAB_H002 BED
-cat GIAB_H002.bed | awk -F $'\t' 'BEGIN {OFS=FS} {print "chr"$1,$2,$2,$3}' > GIAB_H002.chr.bed
-
-# add chr to dbvar BED
-cat dbvar_estd219.uniq.bed | awk -F $'\t' 'BEGIN {OFS=FS} {print "chr"$1,$2,$2,$3}' > dbvar_estd219.uniq.chr.bed
-
 # download GRC issues (GRCh37.p13_issues.gff3)
 wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh37.p13_issues.gff3
 
@@ -93,12 +87,12 @@ echo -e "#BIN\tENCODE_DAC_blacklisted" > summary.ENCODE_DAC_blacklisted.${bin_si
 bedtools coverage -a "$bin_bed" -b ENCODE_DAC_blacklisted.bed | cut -f 4,8 >> summary.ENCODE_DAC_blacklisted.${bin_size}.txt
 
 # GIAB break points
-echo -e "#BIN\tevents_GIAB" > summary.GIAB_H002.${bin_size}.txt
-bedtools coverage -a "$bin_bed" -b GIAB_H002.chr.bed | cut -f 4,5 >> summary.GIAB_H002.${bin_size}.txt
+echo -e "#BIN\tevents_GIAB" > summary.GIAB.${bin_size}.txt
+bedtools coverage -a "$bin_bed" -b sv.giab.bed | cut -f 4,5 >> summary.GIAB.${bin_size}.txt
 
 # 1KG break points
-echo -e "#BIN\tevents_1KG" > summary.dbvar_estd219.${bin_size}.txt
-bedtools coverage -a "$bin_bed" -b dbvar_estd219.uniq.chr.bed | cut -f 4,5 >> summary.dbvar_estd219.${bin_size}.txt
+echo -e "#BIN\tevents_1KG" > summary.1KG.${bin_size}.txt
+bedtools coverage -a "$bin_bed" -b sv.1kg.bed | cut -f 4,5 >> summary.1KG.${bin_size}.txt
 
 # average mappability per bin (using bigWigAverageOverBed from UCSC)
 bigWigAverageOverBed wgEncodeCrgMapabilityAlign50mer.bigWig $bin_bed wgEncodeCrgMapabilityAlign50mer.${bin_size}.txt
