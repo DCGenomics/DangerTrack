@@ -204,11 +204,12 @@ chromplot_issues = read.table(file = "issues.bed", col.names = c("Chrom", "Start
 chromplot_issues$Group = "Issues"
 chromplot_issues$Colors = "dodgerblue4"
 
-
+png("chrom.png", res = 200, width = 10, height = 8, units = "in")
 chromPlot(chr = c(1:9), figCols = 9, yAxis = FALSE, segLwd = 5, noHist = TRUE, maxSegs = 99000, gaps = hg_gap,
           stat = chromplot_score,
           statCol = "score", colStat="firebrick", statName = "score", statTyp = "l", statSumm = "mean",
           segment = chromplot_issues)
+dev.off()
 
 
 ####################
