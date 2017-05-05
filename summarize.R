@@ -17,6 +17,8 @@ library(chromPlot, quietly = TRUE)
 ####################
 
 
+message(" ===== importing files ===== ")
+
 # find all summary files
 summary_files = list.files(path = ".", pattern = "summary.*.5000.txt")
 summary_files
@@ -33,17 +35,19 @@ head(combined_summary)
 
 # plot distributions of values
 
+message(" ===== plot distributions ===== ")
+
 y_limits = c(0, 600000)
 y_breaks = seq(0, 600000, 100000)
 
 plot_50mer = ggplot(combined_summary, aes(Mapability50mer)) +
-geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
+geom_histogram(binwidth = 0.01, fill = "dodgerblue4", na.rm = TRUE) +
 scale_x_continuous() +
 scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
 labs(x = "50 bp Mappability", y = "Frequency")
 
 plot_100mer = ggplot(combined_summary, aes(Mapability100mer)) +
-geom_histogram(binwidth = 0.01, fill = "dodgerblue4") +
+geom_histogram(binwidth = 0.01, fill = "dodgerblue4", na.rm = TRUE) +
 scale_x_continuous() +
 scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
 labs(x = "100 bp Mappability", y = "Frequency")
@@ -51,20 +55,20 @@ labs(x = "100 bp Mappability", y = "Frequency")
 events_x_limits = c(-1, 80)
 
 plot_giab = ggplot(combined_summary, aes(events_GIAB)) +
-geom_histogram(binwidth = 1, fill = "dodgerblue4") +
+geom_histogram(binwidth = 1, fill = "dodgerblue4", na.rm = TRUE) +
 scale_x_continuous(limits = events_x_limits) +
 scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
 labs(x = "Genome in a Bottle Breakpoints", y = "Frequency")
 
 plot_1kg = ggplot(combined_summary, aes(events_1KG)) +
-geom_histogram(binwidth = 1, fill = "dodgerblue4") +
+geom_histogram(binwidth = 1, fill = "dodgerblue4", na.rm = TRUE) +
 scale_x_continuous(limits = events_x_limits) +
 scale_y_sqrt(labels = scales::comma, limits = y_limits, breaks = y_breaks) +
 labs(x = "1000 Genomes Project Breakpoints", y = "Frequency")
 
 # plot the four distribution plots in one image
-plot_grid(plot_50mer, plot_100mer, plot_giab, plot_1kg) +
-ggsave("distributions.all.png", width = 12, height = 8, units = "in")
+plot_dist = plot_grid(plot_50mer, plot_100mer, plot_giab, plot_1kg)
+ggsave(filename = "distributions.all.png", plot = plot_dist, width = 12, height = 8, units = "in")
 
 
 ####################
@@ -72,10 +76,12 @@ ggsave("distributions.all.png", width = 12, height = 8, units = "in")
 
 # a matrix of correlation plots with regression lines
 
+message(" ===== plot correlations ===== ")
+
 # calculate correlation for a random subset of entries to save time (skip bin name column)
 correlation_columns = c("events_1KG", "events_GIAB", "Mapability100mer", "Mapability50mer")
-correlation_subset = combined_summary[sample(nrow(combined_summary), 10000), ]
-correlation_subset = as.matrix(correlation_subset[, correlation_columns])
+correlation_subset = combined_summary[sample(nrow(combined_summary), 50000), ]
+correlation_subset = correlation_subset[, correlation_columns]
 dim(correlation_subset)
 head(correlation_subset)
 
@@ -98,6 +104,8 @@ dev.off()
 
 
 # calculate scores
+
+message(" ===== calculate scores ===== ")
 
 scores = combined_summary
 scores[,"chr"] = sub("(.*):.*-.*", "\\1",  scores[,"#BIN"])
@@ -166,21 +174,21 @@ scores_dac_pval = t.test(scores[scores[,"ENCODE_DAC_blacklisted"] < .05,][, "dan
 plot_p_bracket = data.frame(a = c(1, 1:3,3), b = c(1.02, 1.05, 1.05, 1.05, 1.02))
 
 # boxplots
-ggplot(scores, aes(GRC_issues_binned, danger_score)) +
+boxplot_grc = ggplot(scores, aes(GRC_issues_binned, danger_score)) +
 geom_boxplot(fill = "steelblue3", outlier.color = "gray") +
 geom_line(data = plot_p_bracket, aes(x = a, y = b)) +
 annotate("text", x = 2, y = 1.1, label = "p < 2.2e-16") +
 scale_y_continuous(breaks = seq(0, 1, 0.2)) +
-labs(x = "GRC Issues Regions Overlap", y = "DangerTrack Score") +
-ggsave("score_GRC_issues.png", width = 8, height = 5, units = "in")
+labs(x = "GRC Issues Regions Overlap", y = "DangerTrack Score")
+ggsave(filename = "score_GRC_issues.png", plot = boxplot_grc, width = 8, height = 5, units = "in")
 
-ggplot(scores, aes(ENCODE_DAC_blacklisted_binned, danger_score)) +
+boxplot_encode = ggplot(scores, aes(ENCODE_DAC_blacklisted_binned, danger_score)) +
 geom_boxplot(fill = "steelblue3", outlier.color = "gray") +
 geom_line(data = plot_p_bracket, aes(x = a, y = b)) +
 annotate("text", x = 2, y = 1.1, label = "p < 2.2e-16") +
 scale_y_continuous(breaks = seq(0, 1, 0.2)) +
-labs(x = "ENCODE Blacklisted Regions Overlap", y = "DangerTrack Score") +
-ggsave("score_ENCODE_DAC_blacklisted.png", width = 8, height = 5, units = "in")
+labs(x = "ENCODE Blacklisted Regions Overlap", y = "DangerTrack Score")
+ggsave(filename = "score_ENCODE_DAC_blacklisted.png", plot = boxplot_encode, width = 8, height = 5, units = "in")
 
 
 ####################

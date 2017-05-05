@@ -10,6 +10,9 @@
 # download and format references
 
 
+# uncompress BED files
+gunzip *.bed.gz
+
 # genome FASTA
 wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/chromFa.tar.gz
 tar -xvzf chromFa.tar.gz
