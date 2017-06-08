@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+GENOME=hg38
+FASTA=hg38.fa
+CHROM_SIZES=hg38.chrom.sizes
+GRC_ISSUES=GRC_issues.bed
+BLACKLISTED=ENCODE_DAC_blacklisted.bed
+
 
 # bash commands to prepare, clean, and bin the data
 
@@ -16,14 +22,18 @@ set -e
 
 # genome FASTA
 echo "Downloading GRCh38 human reference genome assembly..."
-wget http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
-gzip -d hg38.fa.gz
-echo "Finished downloading GRCh38 human reference genome assembly."
+if [ ! -f hg38.fa ]
+then
+	wget http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+	gzip -d hg38.fa.gz
+fi
 
 # chrom sizes
 echo "Downloading chromosome sizes of GRCh38..."
-wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes
-echo "Finished downloading chromosome sizes."
+if [ ! -f hg38.chrom.sizes ]
+then
+	wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes
+fi
 
 # mappability or uniqueness of reference genome from ENCODE
 
@@ -38,32 +48,39 @@ echo "Finished downloading chromosome sizes."
 
 # download GRC issues (GRCh37.p13_issues.gff3)
 #wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh37.p13_issues.gff3
-echo "Downloading GRC issues for GRCh38..."
-wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh38_issues.gff3
-echo "Finished downloading GRC issues for GRCh38."
+if [ ! -f GRC_issues.bed ]
+then
+	echo "Downloading GRC issues for GRCh38..."
+	wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh38_issues.gff3
 
-# convert GRC issues to BED
-#cat GRCh37.p13_issues.gff3 | grep -v "^#" | grep -v "chr=Un" \
-#| awk -F $'\t' 'BEGIN {OFS=FS} {print $9,$4-1,$5}' \
-#| perl -pe 's/Name.*chr=(.*?);.*?\t/chr\1\t/' | LC_ALL=C sort -k1,1 -k2,2n \
-#> GRC_issues.bed
+	# convert GRC issues to BED
+	cat GRCh38_issues.gff3 | grep -v "^#" | grep -v "chr=Un" \
+	| awk -F $'\t' 'BEGIN {OFS=FS} {print $9,$4-1,$5}' \
+	| perl -pe 's/Name.*chr=(.*?);.*?\t/chr\1\t/' | LC_ALL=C sort -k1,1 -k2,2n \
+	> GRC_issues.bed
+fi
 
 # create a merged GRC issues BED
-#bedtools merge -i GRC_issues.bed > GRC_issues.merged.bed
+bedtools merge -i GRC_issues.bed > GRC_issues.merged.bed
 
 # download ENCODE DAC Blacklisted Regions
 #wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDacMapabilityConsensusExcludable.bed.gz
 
+if [ ! -f ENCODE_DAC_blacklisted.bed ]
+then
+	wget ftp://http://mitra.stanford.edu/kundaje/akundaje/release/blacklists/hg38-human/hg38.blacklist.bed.gz
+	gunzip -c wgEncodeDacMapabilityConsensusExcludable.bed.gz \
+	| cut -f 1-4 | LC_ALL=C sort -k1,1 -k2,2n \
+	> ENCODE_DAC_blacklisted.bed
+fi
+
 # convert ENCODE DAC Blacklisted Regions to BED
-#gunzip -c wgEncodeDacMapabilityConsensusExcludable.bed.gz \
-#| cut -f 1-4 | LC_ALL=C sort -k1,1 -k2,2n \
-#> ENCODE_DAC_blacklisted.bed
 
 # create a merged ENCODE DAC Blacklisted Regions BED
-#bedtools merge -i ENCODE_DAC_blacklisted.bed > ENCODE_DAC_blacklisted.merged.bed
+bedtools merge -i ENCODE_DAC_blacklisted.bed > ENCODE_DAC_blacklisted.merged.bed
 
 # combined GRC and ENCODE issues
-#cat GRC_issues.bed ENCODE_DAC_blacklisted.bed | cut -f 1-3 | LC_ALL=C sort -k1,1 -k2,2n | bedtools merge > issues.bed
+cat GRC_issues.bed ENCODE_DAC_blacklisted.bed | cut -f 1-3 | LC_ALL=C sort -k1,1 -k2,2n | bedtools merge > issues.bed
 
 
 ####################
@@ -73,12 +90,12 @@ echo "Finished downloading GRC issues for GRCh38."
 
 
 bin_size="5000"
-bin_bed="hg19.bin.${bin_size}.bed"
+bin_bed="${GENOME}.bin.${bin_size}.bed"
 
 # divide genome to $bin_size windows and add interval-style regions name
-#bedtools makewindows -g hg19.chrom.sizes -w "$bin_size" | grep -v "_" \
-#| LC_ALL=C sort -k1,1 -k2,2n | awk -F $'\t' 'BEGIN {OFS=FS} {print $0,$1":"$2"-"$3}' \
-#> "$bin_bed"
+bedtools makewindows -g ${CHROM_SIZES} -w "$bin_size" | grep -v "_" \
+| LC_ALL=C sort -k1,1 -k2,2n | awk -F $'\t' 'BEGIN {OFS=FS} {print $0,$1":"$2"-"$3}' \
+> "$bin_bed"
 
 
 ####################
