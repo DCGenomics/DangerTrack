@@ -16,8 +16,8 @@ set -e
 
 # genome FASTA
 echo "Downloading GRCh38 human reference genome assembly..."
-#wget http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
-#gzip -d hg38.fa.gz
+wget http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+gzip -d hg38.fa.gz
 echo "Finished downloading GRCh38 human reference genome assembly."
 
 # chrom sizes
@@ -38,6 +38,9 @@ echo "Finished downloading chromosome sizes."
 
 # download GRC issues (GRCh37.p13_issues.gff3)
 #wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh37.p13_issues.gff3
+echo "Downloading GRC issues for GRCh38..."
+wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh38_issues.gff3
+echo "Finished downloading GRC issues for GRCh38."
 
 # convert GRC issues to BED
 #cat GRCh37.p13_issues.gff3 | grep -v "^#" | grep -v "chr=Un" \
