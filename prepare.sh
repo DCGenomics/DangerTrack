@@ -28,19 +28,7 @@ then
 	wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes
 fi
 
-# mappability or uniqueness of reference genome from ENCODE
-
-# --- hg38 BEGIN 
-
-# --- hg38 END
-
-# --- hg19 BEGIN
-#wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
-#wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign100mer.bigWig
-# --- hg19 END
-
-# download GRC issues (GRCh37.p13_issues.gff3)
-#wget ftp://ftp.ncbi.nlm.nih.gov/pub/grc/human/GRC/Issue_Mapping/GRCh37.p13_issues.gff3
+# download GRC issues (GRCh38.gff3)
 if [ ! -f GRC_issues.bed ]
 then
 	echo "Downloading GRC issues for GRCh38..."
@@ -57,17 +45,15 @@ fi
 bedtools merge -i GRC_issues.bed > GRC_issues.merged.bed
 
 # download ENCODE DAC Blacklisted Regions
-#wget ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeDacMapabilityConsensusExcludable.bed.gz
-
 if [ ! -f ENCODE_DAC_blacklisted.bed ]
 then
 	wget mitra.stanford.edu/kundaje/akundaje/release/blacklists/hg38-human/hg38.blacklist.bed.gz
+	# convert ENCODE DAC Blacklisted Regions to BED
 	gunzip -c hg38.blacklist.bed.gz \
 	| cut -f 1-4 | LC_ALL=C sort -k1,1 -k2,2n \
 	> ENCODE_DAC_blacklisted.bed
 fi
 
-# convert ENCODE DAC Blacklisted Regions to BED
 
 # create a merged ENCODE DAC Blacklisted Regions BED
 bedtools merge -i ENCODE_DAC_blacklisted.bed > ENCODE_DAC_blacklisted.merged.bed
@@ -105,36 +91,36 @@ bedtools makewindows -g hg38.chrom.sizes -w "$bin_size" | grep -v "_" \
 # 4) The fraction of bases in A that had non-zero coverage.
 
 # GRC known issues (fraction of window with any issues)
-#echo -e "#BIN\tGRC_issues" > summary.GRC_issues.${bin_size}.txt
-#bedtools coverage -a "$bin_bed" -b GRC_issues.bed | cut -f 4,8 >> summary.GRC_issues.${bin_size}.txt
+echo -e "#BIN\tGRC_issues" > summary.GRC_issues.${bin_size}.txt
+bedtools coverage -a "$bin_bed" -b GRC_issues.bed | cut -f 4,8 >> summary.GRC_issues.${bin_size}.txt
 
 # ENCODE DAC Blacklisted Regions (fraction of window with any issues)
-#echo -e "#BIN\tENCODE_DAC_blacklisted" > summary.ENCODE_DAC_blacklisted.${bin_size}.txt
-#bedtools coverage -a "$bin_bed" -b ENCODE_DAC_blacklisted.bed | cut -f 4,8 >> summary.ENCODE_DAC_blacklisted.${bin_size}.txt
+echo -e "#BIN\tENCODE_DAC_blacklisted" > summary.ENCODE_DAC_blacklisted.${bin_size}.txt
+bedtools coverage -a "$bin_bed" -b ENCODE_DAC_blacklisted.bed | cut -f 4,8 >> summary.ENCODE_DAC_blacklisted.${bin_size}.txt
 
 # GIAB break points
 #echo -e "#BIN\tevents_GIAB" > summary.GIAB.${bin_size}.txt
-#bedtools coverage -a "$bin_bed" -b sv.giab.bed | cut -f 4,5 >> summary.GIAB.${bin_size}.txt
+bedtools coverage -a "$bin_bed" -b sv.giab.hg38.bed | cut -f 4,5 >> summary.GIAB.${bin_size}.txt
 
 # 1KG break points
-#echo -e "#BIN\tevents_1KG" > summary.1KG.${bin_size}.txt
-#bedtools coverage -a "$bin_bed" -b sv.1kg.bed | cut -f 4,5 >> summary.1KG.${bin_size}.txt
+echo -e "#BIN\tevents_1KG" > summary.1KG.${bin_size}.txt
+bedtools coverage -a "$bin_bed" -b sv.1kg.hg38.bed | cut -f 4,5 >> summary.1KG.${bin_size}.txt
 
 # average mappability per bin (using bigWigAverageOverBed from UCSC)
-#bigWigAverageOverBed wgEncodeCrgMapabilityAlign50mer.bigWig $bin_bed wgEncodeCrgMapabilityAlign50mer.${bin_size}.txt
-#bigWigAverageOverBed wgEncodeCrgMapabilityAlign100mer.bigWig $bin_bed wgEncodeCrgMapabilityAlign100mer.${bin_size}.txt
+bigWigAverageOverBed wgEncodeCrgMapabilityAlign50mer.hg38.bigWig $bin_bed wgEncodeCrgMapabilityAlign50mer.${bin_size}.txt
+bigWigAverageOverBed wgEncodeCrgMapabilityAlign100mer.hg38.bigWig $bin_bed wgEncodeCrgMapabilityAlign100mer.${bin_size}.txt
 
 # average 50bp mappability per bin in comparable format
-#echo -e "#BIN\tMapability50mer" > summary.map50mer.${bin_size}.txt
-#cat wgEncodeCrgMapabilityAlign50mer.${bin_size}.txt | cut -f 1,5 \
-#| tr ':' '\t' | tr '-' '\t' | LC_ALL=C sort -k1,1 -k2,2n \
-#| awk -F $'\t' 'BEGIN {OFS=FS} {print $1":"$2"-"$3,$4}' >> summary.map50mer.${bin_size}.txt
+echo -e "#BIN\tMapability50mer" > summary.map50mer.${bin_size}.txt
+cat wgEncodeCrgMapabilityAlign50mer.${bin_size}.txt | cut -f 1,5 \
+| tr ':' '\t' | tr '-' '\t' | LC_ALL=C sort -k1,1 -k2,2n \
+| awk -F $'\t' 'BEGIN {OFS=FS} {print $1":"$2"-"$3,$4}' >> summary.map50mer.${bin_size}.txt
 
 # average 100bp mappability per bin in comparable format
-#echo -e "#BIN\tMapability100mer" > summary.map100mer.${bin_size}.txt
-#cat wgEncodeCrgMapabilityAlign100mer.${bin_size}.txt | cut -f 1,5 \
-#| tr ':' '\t' | tr '-' '\t' | LC_ALL=C sort -k1,1 -k2,2n \
-#| awk -F $'\t' 'BEGIN {OFS=FS} {print $1":"$2"-"$3,$4}' >> summary.map100mer.${bin_size}.txt
+echo -e "#BIN\tMapability100mer" > summary.map100mer.${bin_size}.txt
+cat wgEncodeCrgMapabilityAlign100mer.${bin_size}.txt | cut -f 1,5 \
+| tr ':' '\t' | tr '-' '\t' | LC_ALL=C sort -k1,1 -k2,2n \
+| awk -F $'\t' 'BEGIN {OFS=FS} {print $1":"$2"-"$3,$4}' >> summary.map100mer.${bin_size}.txt
 
 
 ####################

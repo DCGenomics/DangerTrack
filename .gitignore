@@ -99,3 +99,6 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+# DangerTrack data files to ignore
+GRCh38_issues.gff3
+hg38.chrom.sizes
