@@ -1,13 +1,6 @@
 #!/bin/bash
 set -e
 
-GENOME=hg38
-FASTA=hg38.fa
-CHROM_SIZES=hg38.chrom.sizes
-GRC_ISSUES=GRC_issues.bed
-BLACKLISTED=ENCODE_DAC_blacklisted.bed
-
-
 # bash commands to prepare, clean, and bin the data
 
 
@@ -68,8 +61,8 @@ bedtools merge -i GRC_issues.bed > GRC_issues.merged.bed
 
 if [ ! -f ENCODE_DAC_blacklisted.bed ]
 then
-	wget ftp://http://mitra.stanford.edu/kundaje/akundaje/release/blacklists/hg38-human/hg38.blacklist.bed.gz
-	gunzip -c wgEncodeDacMapabilityConsensusExcludable.bed.gz \
+	wget mitra.stanford.edu/kundaje/akundaje/release/blacklists/hg38-human/hg38.blacklist.bed.gz
+	gunzip -c hg38.blacklist.bed.gz \
 	| cut -f 1-4 | LC_ALL=C sort -k1,1 -k2,2n \
 	> ENCODE_DAC_blacklisted.bed
 fi
@@ -90,10 +83,10 @@ cat GRC_issues.bed ENCODE_DAC_blacklisted.bed | cut -f 1-3 | LC_ALL=C sort -k1,1
 
 
 bin_size="5000"
-bin_bed="${GENOME}.bin.${bin_size}.bed"
+bin_bed="hg38.bin.${bin_size}.bed"
 
 # divide genome to $bin_size windows and add interval-style regions name
-bedtools makewindows -g ${CHROM_SIZES} -w "$bin_size" | grep -v "_" \
+bedtools makewindows -g hg38.chrom.sizes -w "$bin_size" | grep -v "_" \
 | LC_ALL=C sort -k1,1 -k2,2n | awk -F $'\t' 'BEGIN {OFS=FS} {print $0,$1":"$2"-"$3}' \
 > "$bin_bed"
 
